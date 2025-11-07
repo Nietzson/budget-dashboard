@@ -85,13 +85,13 @@ const BudgetDashboard = () => {
   const COLORS = ['#6B98C6', '#8BADD6', '#A5C3E0', '#7B95B3', '#5A7FA0', '#4A6A8A'];
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-slate-50 p-6 font-sans">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-4xl font-bold text-gray-800 mb-8">Personal Budget Dashboard</h1>
         
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+          <div className="card">
             <div className="flex items-center justify-between mb-2">
               <span className="text-gray-600 text-sm font-medium">Total Income</span>
               <TrendingUp className="text-blue-600" size={20} />
@@ -99,7 +99,7 @@ const BudgetDashboard = () => {
             <div className="text-3xl font-bold text-gray-900">€{totalIncome.toFixed(2)}</div>
           </div>
           
-          <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+          <div className="card">
             <div className="flex items-center justify-between mb-2">
               <span className="text-gray-600 text-sm font-medium">Total Expenses</span>
               <TrendingDown className="text-red-600" size={20} />
@@ -107,7 +107,7 @@ const BudgetDashboard = () => {
             <div className="text-3xl font-bold text-gray-900">€{totalExpenses.toFixed(2)}</div>
           </div>
           
-          <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+          <div className="card">
             <div className="flex items-center justify-between mb-2">
               <span className="text-gray-600 text-sm font-medium">Total Savings</span>
               <DollarSign className="text-green-600" size={20} />
@@ -115,18 +115,18 @@ const BudgetDashboard = () => {
             <div className="text-3xl font-bold text-gray-900">€{totalSavings.toFixed(2)}</div>
           </div>
           
-          <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+          <div className="card">
             <div className="flex items-center justify-between mb-2">
               <span className="text-gray-600 text-sm font-medium">Cash Balance</span>
             </div>
-            <div className={`text-3xl font-bold ${cashBalance >= 0 ? 'text-green-600' : 'text-orange-600'}`}>€{cashBalance.toFixed(2)}</div>
+            <div className={`${"text-3xl font-bold"} ${cashBalance >= 0 ? 'text-green-600' : 'text-orange-600'}`}>€{cashBalance.toFixed(2)}</div>
           </div>
         </div>
 
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Spending Percentage */}
-          <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+          <div className="card">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Spending Rate</h2>
             <div className="flex items-center justify-center h-64">
               <div className="relative">
@@ -159,7 +159,7 @@ const BudgetDashboard = () => {
           </div>
 
           {/* Income vs Expenses */}
-          <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+          <div className="card">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Financial Overview</h2>
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={comparisonData}>
@@ -180,7 +180,7 @@ const BudgetDashboard = () => {
           </div>
 
           {/* Expenses by Category */}
-          <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm lg:col-span-2">
+          <div className="card lg:col-span-2">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Expenses by Category</h2>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
@@ -211,7 +211,7 @@ const BudgetDashboard = () => {
         {/* Data Tables */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Income */}
-          <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+          <div className="card">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Monthly Income</h2>
             <div className="space-y-2 mb-4">
               {income.map(item => (
@@ -232,18 +232,18 @@ const BudgetDashboard = () => {
                 placeholder="Income source"
                 value={newIncome.item}
                 onChange={(e) => setNewIncome({...newIncome, item: e.target.value})}
-                className="w-full bg-white text-gray-900 p-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                className="input"
               />
               <input
                 type="number"
                 placeholder="Amount"
                 value={newIncome.amount}
                 onChange={(e) => setNewIncome({...newIncome, amount: e.target.value})}
-                className="w-full bg-white text-gray-900 p-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                className="input"
               />
               <button
                 onClick={addIncome}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                className="w-full btn btn-primary"
               >
                 <PlusCircle size={18} /> Add Income
               </button>
@@ -251,7 +251,7 @@ const BudgetDashboard = () => {
           </div>
 
           {/* Expenses */}
-          <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+          <div className="card">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Monthly Expenses</h2>
             <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
               {expenses.map(item => (
@@ -275,12 +275,12 @@ const BudgetDashboard = () => {
                 placeholder="Expense name"
                 value={newExpense.item}
                 onChange={(e) => setNewExpense({...newExpense, item: e.target.value})}
-                className="w-full bg-white text-gray-900 p-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                className="input"
               />
               <select
                 value={newExpense.category}
                 onChange={(e) => setNewExpense({...newExpense, category: e.target.value})}
-                className="w-full bg-white text-gray-900 p-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                className="select"
               >
                 <option>Housing</option>
                 <option>Utilities</option>
@@ -294,11 +294,11 @@ const BudgetDashboard = () => {
                 placeholder="Amount"
                 value={newExpense.amount}
                 onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})}
-                className="w-full bg-white text-gray-900 p-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                className="input"
               />
               <button
                 onClick={addExpense}
-                className="w-full bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                className="w-full btn btn-primary"
               >
                 <PlusCircle size={18} /> Add Expense
               </button>
@@ -306,7 +306,7 @@ const BudgetDashboard = () => {
           </div>
 
           {/* Savings */}
-          <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+          <div className="card">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Monthly Savings</h2>
             <div className="space-y-2 mb-4">
               {savings.map(item => (
@@ -327,18 +327,18 @@ const BudgetDashboard = () => {
                 placeholder="Savings goal"
                 value={newSaving.item}
                 onChange={(e) => setNewSaving({...newSaving, item: e.target.value})}
-                className="w-full bg-white text-gray-900 p-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                className="input"
               />
               <input
                 type="number"
                 placeholder="Amount"
                 value={newSaving.amount}
                 onChange={(e) => setNewSaving({...newSaving, amount: e.target.value})}
-                className="w-full bg-white text-gray-900 p-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                className="input"
               />
               <button
                 onClick={addSaving}
-                className="w-full bg-green-600 hover:bg-green-700 text-white p-2 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                className="w-full btn btn-green"
               >
                 <PlusCircle size={18} /> Add Savings
               </button>
