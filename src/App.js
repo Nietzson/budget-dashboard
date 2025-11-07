@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { PlusCircle, Trash2, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 
 const BudgetDashboard = () => {
@@ -71,7 +71,7 @@ const BudgetDashboard = () => {
       const raw = localStorage.getItem('budget-dashboard:selectedCategory');
       if (typeof raw === 'string') setSelectedCategory(raw);
     } catch {}
-  }, []);
+  }, [PASS_HASH]);
 
   useEffect(() => {
     try { localStorage.setItem('budget-dashboard:income', JSON.stringify(income)); } catch {}
