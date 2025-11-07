@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { PlusCircle, Trash2, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 
@@ -22,6 +22,88 @@ const BudgetDashboard = () => {
   const [newIncome, setNewIncome] = useState({ item: '', amount: '' });
   const [newExpense, setNewExpense] = useState({ item: '', amount: '', dueDate: '', category: 'Other' });
   const [newSaving, setNewSaving] = useState({ item: '', amount: '', date: '' });
+
+  const [categoryBudgets, setCategoryBudgets] = useState([]);
+  const [newBudget, setNewBudget] = useState({ category: '', limit: '' });
+  const [selectedCategory, setSelectedCategory] = useState('');
+
+  const PASS_HASH = process.env.REACT_APP_PASS_HASH || '';
+  const [isAuthed, setIsAuthed] = useState(PASS_HASH ? false : true);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [authError, setAuthError] = useState('');
+
+  useEffect(() => {
+    if (PASS_HASH) {
+      try {
+        const saved = localStorage.getItem('budget-dashboard:auth-hash');
+        if (saved && saved === PASS_HASH) setIsAuthed(true);
+      } catch {}
+    }
+    try {
+      const raw = localStorage.getItem('budget-dashboard:income');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) setIncome(parsed);
+      }
+    } catch {}
+    try {
+      const raw = localStorage.getItem('budget-dashboard:expenses');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) setExpenses(parsed);
+      }
+    } catch {}
+    try {
+      const raw = localStorage.getItem('budget-dashboard:savings');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) setSavings(parsed);
+      }
+    } catch {}
+    try {
+      const raw = localStorage.getItem('budget-dashboard:categoryBudgets');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) setCategoryBudgets(parsed);
+      }
+    } catch {}
+    try {
+      const raw = localStorage.getItem('budget-dashboard:selectedCategory');
+      if (typeof raw === 'string') setSelectedCategory(raw);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try { localStorage.setItem('budget-dashboard:income', JSON.stringify(income)); } catch {}
+    try { localStorage.setItem('budget-dashboard:expenses', JSON.stringify(expenses)); } catch {}
+    try { localStorage.setItem('budget-dashboard:savings', JSON.stringify(savings)); } catch {}
+    try { localStorage.setItem('budget-dashboard:categoryBudgets', JSON.stringify(categoryBudgets)); } catch {}
+    try { localStorage.setItem('budget-dashboard:selectedCategory', selectedCategory || ''); } catch {}
+  }, [income, expenses, savings, categoryBudgets, selectedCategory]);
+
+  const sha256Hex = async (str) => {
+    const data = new TextEncoder().encode(str);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    let hex = '';
+    const view = new Uint8Array(hashBuffer);
+    for (let i = 0; i < view.length; i++) hex += view[i].toString(16).padStart(2, '0');
+    return hex;
+  };
+
+  const handleUnlock = async () => {
+    setAuthError('');
+    try {
+      const hash = await sha256Hex(passwordInput);
+      if (PASS_HASH && hash === PASS_HASH) {
+        try { localStorage.setItem('budget-dashboard:auth-hash', PASS_HASH); } catch {}
+        setIsAuthed(true);
+      } else {
+        setAuthError('Incorrect password');
+      }
+    } catch {
+      setAuthError('Unable to verify in this browser');
+    }
+  };
 
   const totalIncome = income.reduce((sum, item) => sum + item.amount, 0);
   const totalExpenses = expenses.reduce((sum, item) => sum + item.amount, 0);
@@ -60,6 +142,26 @@ const BudgetDashboard = () => {
       setNewSaving({ item: '', amount: '', date: '' });
     }
   };
+ 
+  const addBudget = () => {
+    if (newBudget.category && newBudget.limit) {
+      const categoryName = newBudget.category.trim();
+      const existing = categoryBudgets.find(b => b.category.toLowerCase() === categoryName.toLowerCase());
+      if (existing) {
+        setCategoryBudgets(categoryBudgets.map(b => b.category.toLowerCase() === categoryName.toLowerCase() ? { ...b, limit: parseFloat(newBudget.limit) } : b));
+      } else {
+        setCategoryBudgets([...categoryBudgets, { id: Date.now(), category: categoryName, limit: parseFloat(newBudget.limit) }]);
+        if (!selectedCategory) setSelectedCategory(categoryName);
+      }
+      setNewBudget({ category: '', limit: '' });
+    }
+  };
+ 
+  const deleteBudget = (id) => {
+    const deleted = categoryBudgets.find(b => b.id === id);
+    setCategoryBudgets(categoryBudgets.filter(b => b.id !== id));
+    if (deleted && deleted.category === selectedCategory) setSelectedCategory('');
+  };
 
   const deleteIncome = (id) => setIncome(income.filter(item => item.id !== id));
   const deleteExpense = (id) => setExpenses(expenses.filter(item => item.id !== id));
@@ -82,7 +184,37 @@ const BudgetDashboard = () => {
     { name: 'Savings', value: totalSavings }
   ];
 
+  const selectedBudgetObj = categoryBudgets.find(b => b.category === selectedCategory);
+  const selectedBudgetLimit = selectedBudgetObj ? selectedBudgetObj.limit : 0;
+  const selectedCategoryExpenses = expenses.filter(e => e.category === selectedCategory);
+  const selectedCategorySpent = selectedCategoryExpenses.reduce((sum, e) => sum + e.amount, 0);
+  const selectedCategoryRemaining = selectedBudgetLimit - selectedCategorySpent;
+  const selectedCategoryPercent = selectedBudgetLimit > 0 ? Math.min(100, Math.round((selectedCategorySpent / selectedBudgetLimit) * 100)) : 0;
+
   const COLORS = ['#6B98C6', '#8BADD6', '#A5C3E0', '#7B95B3', '#5A7FA0', '#4A6A8A'];
+
+  if (PASS_HASH && !isAuthed) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-6 font-sans">
+        <div className="max-w-md mx-auto">
+          <div className="card">
+            <h1 className="text-2xl font-bold text-gray-800 mb-4">Enter Password</h1>
+            <div className="space-y-2">
+              <input
+                type="password"
+                placeholder="Password"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                className="input"
+              />
+              {authError && <div className="text-red-600 text-sm">{authError}</div>}
+              <button onClick={handleUnlock} className="w-full btn btn-primary">Unlock</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 p-6 font-sans">
@@ -96,6 +228,7 @@ const BudgetDashboard = () => {
               <span className="text-gray-600 text-sm font-medium">Total Income</span>
               <TrendingUp className="text-blue-600" size={20} />
             </div>
+ 
             <div className="text-3xl font-bold text-gray-900">€{totalIncome.toFixed(2)}</div>
           </div>
           
@@ -208,6 +341,133 @@ const BudgetDashboard = () => {
           </div>
         </div>
 
+        {/* Category Budgets Tracker */}
+        <div className="card mb-8">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">Category Budgets</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="space-y-2">
+              <input
+                type="text"
+                placeholder="Category (e.g., Extra)"
+                value={newBudget.category}
+                onChange={(e) => setNewBudget({ ...newBudget, category: e.target.value })}
+                className="input"
+              />
+              <input
+                type="number"
+                placeholder="Budget limit (€)"
+                value={newBudget.limit}
+                onChange={(e) => setNewBudget({ ...newBudget, limit: e.target.value })}
+                className="input"
+              />
+              <button onClick={addBudget} className="w-full btn btn-primary">
+                <PlusCircle size={18} /> Add/Update Budget
+              </button>
+
+              <div className="space-y-2 mt-4 max-h-48 overflow-y-auto">
+                {categoryBudgets.length === 0 ? (
+                  <p className="text-gray-500 text-sm">No category budgets yet.</p>
+                ) : (
+                  categoryBudgets.map(b => (
+                    <div key={b.id} className="flex justify-between items-center bg-gray-50 border border-gray-200 p-3 rounded-lg">
+                      <span className="text-gray-700">{b.category}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-600">€{b.limit.toFixed(2)}</span>
+                        <button onClick={() => deleteBudget(b.id)} className="text-red-600 hover:text-red-700"><Trash2 size={16} /></button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+            <div className="lg:col-span-2">
+              <div className="flex items-center gap-3 mb-4">
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="select"
+                >
+                  <option value="">Select budget category</option>
+                  {categoryBudgets.map(b => (
+                    <option key={b.id} value={b.category}>{b.category}</option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedCategory ? (
+                <div>
+                  <div className="flex items-center justify-center h-64 mb-4">
+                    <div className="relative">
+                      <ResponsiveContainer width={220} height={220}>
+                        <PieChart>
+                          <Pie
+                            data={[
+                              { value: selectedCategoryPercent },
+                              { value: 100 - selectedCategoryPercent }
+                            ]}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={70}
+                            outerRadius={90}
+                            startAngle={90}
+                            endAngle={-270}
+                            dataKey="value"
+                          >
+                            <Cell fill="#5A7FA0" />
+                            <Cell fill="#E5E7EB" />
+                          </Pie>
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-4xl font-bold text-gray-800">{selectedCategoryPercent}%</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                      <div className="text-xs text-gray-500">Spent</div>
+                      <div className="text-lg font-semibold text-red-600">€{selectedCategorySpent.toFixed(2)}</div>
+                    </div>
+                    <div className={`bg-gray-50 border border-gray-200 rounded-lg p-3 ${selectedCategoryRemaining < 0 ? 'text-orange-600' : ''}`}>
+                      <div className="text-xs text-gray-500">Remaining</div>
+                      <div className={`text-lg font-semibold ${selectedCategoryRemaining >= 0 ? 'text-green-600' : 'text-orange-600'}`}>
+                        €{Math.max(0, selectedCategoryRemaining).toFixed(2)}
+                      </div>
+                      {selectedCategoryRemaining < 0 && (
+                        <div className="text-xs text-orange-600 mt-1">Overspent by €{Math.abs(selectedCategoryRemaining).toFixed(2)}</div>
+                      )}
+                    </div>
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                      <div className="text-xs text-gray-500">Budget</div>
+                      <div className="text-lg font-semibold text-gray-800">€{selectedBudgetLimit.toFixed(2)}</div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {selectedCategoryExpenses.length === 0 ? (
+                      <p className="text-gray-500 text-sm">No expenses in this category.</p>
+                    ) : (
+                      selectedCategoryExpenses.map(item => (
+                        <div key={item.id} className="bg-gray-50 border border-gray-200 p-3 rounded-lg">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-gray-700 font-medium">{item.item}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-500">{item.dueDate || 'No date'}</span>
+                            <span className="text-red-600 font-semibold">€{item.amount.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm">Select or add a category budget to see details.</p>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Data Tables */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Income */}
@@ -263,7 +523,7 @@ const BudgetDashboard = () => {
                     </button>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">{item.category}</span>
+                    <span className="text-gray-500">{item.category}{item.dueDate ? ` • ${item.dueDate}` : ''}</span>
                     <span className="text-red-600 font-semibold">€{item.amount.toFixed(2)}</span>
                   </div>
                 </div>
@@ -287,6 +547,7 @@ const BudgetDashboard = () => {
                 <option>Food</option>
                 <option>Transport</option>
                 <option>Entertainment</option>
+                <option>Extra</option>
                 <option>Other</option>
               </select>
               <input
@@ -294,6 +555,13 @@ const BudgetDashboard = () => {
                 placeholder="Amount"
                 value={newExpense.amount}
                 onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})}
+                className="input"
+              />
+              <input
+                type="date"
+                placeholder="Date"
+                value={newExpense.dueDate}
+                onChange={(e) => setNewExpense({...newExpense, dueDate: e.target.value})}
                 className="input"
               />
               <button
